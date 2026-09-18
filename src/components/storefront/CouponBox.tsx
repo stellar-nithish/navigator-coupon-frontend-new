@@ -22,8 +22,10 @@ export default function CouponBox({ compact = false }: CouponBoxProps) {
 
   const [inputVal, setInputVal] = useState('');
 
-  const handleApply = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleApply = async (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) {
+      e.preventDefault();
+    }
     const code = inputVal.trim() || couponCodeInput.trim();
     if (!code) return;
     const success = await applyCoupon(code);
@@ -85,7 +87,7 @@ export default function CouponBox({ compact = false }: CouponBoxProps) {
         </div>
       ) : (
         <div>
-          <form onSubmit={handleApply} className="flex gap-2">
+          <div className="flex gap-2">
             <div className="relative flex-1">
               <input
                 type="text"
@@ -94,13 +96,21 @@ export default function CouponBox({ compact = false }: CouponBoxProps) {
                   setInputVal(e.target.value.toUpperCase());
                   setCouponCodeInput(e.target.value.toUpperCase());
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleApply(e);
+                  }
+                }}
                 placeholder="e.g. STELLAR50"
                 className="w-full px-3 py-2 text-xs uppercase tracking-wider font-mono bg-stone-50/80 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ab8d6c] focus:border-transparent placeholder:text-stone-400 placeholder:normal-case placeholder:font-sans"
                 disabled={isApplyingCoupon}
               />
             </div>
             <button
-              type="submit"
+              type="button"
+              onClick={handleApply}
               disabled={isApplyingCoupon || !inputVal.trim()}
               className="px-4 py-2 text-xs font-medium rounded-lg bg-[#1c1d1f] hover:bg-stone-800 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
             >
@@ -113,7 +123,7 @@ export default function CouponBox({ compact = false }: CouponBoxProps) {
                 <span>Apply</span>
               )}
             </button>
-          </form>
+          </div>
 
           {couponError && (
             <div className="mt-2 flex items-start gap-1.5 text-xs text-red-600 bg-red-50/80 border border-red-200 rounded-lg p-2.5">
