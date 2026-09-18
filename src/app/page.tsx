@@ -17,12 +17,11 @@ export default function HomePage() {
   useEffect(() => {
     async function loadProducts() {
       try {
-        const res = await fetchApi<{ data: Product[] } | Product[]>('/api/products');
-        const items = Array.isArray(res) ? res : res?.data || [];
+        const data = await fetchApi<{ data: Product[] } | Product[]>('/api/products');
+        const items = Array.isArray(data) ? data : data?.data || [];
         setProducts(items);
       } catch (e) {
         console.error('Failed to load products', e);
-        setProducts([]);
       } finally {
         setLoading(false);
       }
