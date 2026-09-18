@@ -27,6 +27,54 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Helper to determine if two line items match the exact same product variant & size
+function isSameItem(
+  item: CartItem,
+  targetProduct: { id?: string; slug?: string; sku?: string; title?: string },
+  targetSize: string = 'M',
+): boolean {
+  const s1 = (item.size || 'M').trim().toUpperCase();
+  const s2 = (targetSize || 'M').trim().toUpperCase();
+  if (s1 !== s2) return false;
+
+  const p1 = item.product;
+  if (p1.id && targetProduct.id && p1.id === targetProduct.id) return true;
+  if (p1.slug && targetProduct.slug && p1.slug === targetProduct.slug) return true;
+  if (p1.sku && targetProduct.sku && p1.sku === targetProduct.sku) return true;
+  if (
+    p1.title &&
+    targetProduct.title &&
+    p1.title.trim().toLowerCase() === targetProduct.title.trim().toLowerCase()
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+// Consolidate duplicate rows for same product + same size
+function consolidateCart(items: CartItem[]): CartItem[] {
+  const consolidated: CartItem[] = [];
+  for (const item of items) {
+    const existingIndex = consolidated.findIndex((c) =>
+      isSameItem(c, item.product, item.size),
+    );
+    if (existingIndex > -1) {
+      consolidated[existingIndex] = {
+        ...consolidated[existingIndex],
+        quantity: consolidated[existingIndex].quantity + item.quantity,
+        product: { ...consolidated[existingIndex].product, ...item.product },
+      };
+    } else {
+      consolidated.push({
+        ...item,
+        size: (item.size || 'M').trim().toUpperCase(),
+      });
+    }
+  }
+  return consolidated;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -35,12 +83,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
-  // Load cart from localStorage
+  // Load cart from localStorage and auto-consolidate
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem('navigator_cart');
       if (savedCart) {
-        setCart(JSON.parse(savedCart));
+        const parsed: CartItem[] = JSON.parse(savedCart);
+        if (Array.isArray(parsed)) {
+          const clean = consolidateCart(parsed);
+          setCart(clean);
+        }
       }
       const savedCoupon = localStorage.getItem('navigator_coupon');
       if (savedCoupon) {
@@ -101,12 +153,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             setAppliedCoupon(result);
             setCouponError(null);
           } else {
-            // If now invalid (e.g. subtotal dropped below min order)
             setCouponError(result.message);
             setAppliedCoupon(null);
           }
         } catch {
-          // Keep current or silently fail
+          // keep or handle silently
         }
       };
       revalidate();
@@ -117,32 +168,63 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [subtotal, cart.length]);
 
   const addToCart = (product: Product, quantity = 1, size = 'M') => {
+    const normalizedSize = (size || 'M').trim().toUpperCase();
     setCart((prev) => {
-      const existingIndex = prev.findIndex(
-        (item) => item.product.id === product.id && item.size === size,
+      const existingIndex = prev.findIndex((item) =>
+        isSameItem(item, product, normalizedSize),
       );
+
       if (existingIndex > -1) {
         const updated = [...prev];
-        updated[existingIndex].quantity += quantity;
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + quantity,
+          product: { ...updated[existingIndex].product, ...product },
+        };
         return updated;
       }
-      return [...prev, { product, quantity, size }];
+
+      return [
+        ...prev,
+        {
+          product,
+          quantity,
+          size: normalizedSize,
+        },
+      ];
     });
     setIsCartOpen(true);
   };
 
   const removeFromCart = (productId: string, size = 'M') => {
-    setCart((prev) => prev.filter((item) => !(item.product.id === productId && item.size === size)));
+    const normalizedSize = (size || 'M').trim().toUpperCase();
+    setCart((prev) =>
+      prev.filter(
+        (item) =>
+          !isSameItem(
+            item,
+            { id: productId, slug: productId, sku: productId },
+            normalizedSize,
+          ),
+      ),
+    );
   };
 
   const updateQuantity = (productId: string, quantity: number, size = 'M') => {
+    const normalizedSize = (size || 'M').trim().toUpperCase();
     if (quantity <= 0) {
-      removeFromCart(productId, size);
+      removeFromCart(productId, normalizedSize);
       return;
     }
     setCart((prev) =>
       prev.map((item) =>
-        item.product.id === productId && item.size === size ? { ...item, quantity } : item,
+        isSameItem(
+          item,
+          { id: productId, slug: productId, sku: productId },
+          normalizedSize,
+        )
+          ? { ...item, quantity }
+          : item,
       ),
     );
   };
