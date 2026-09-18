@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Compass,
   Building2,
@@ -18,16 +18,60 @@ import {
   ExternalLink,
   Menu,
   X,
+  LogOut,
+  ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Check authentication status on mount & route change
+  useEffect(() => {
+    if (pathname === '/admin/login') {
+      setIsAuthenticated(true);
+      return;
+    }
+
+    const auth = localStorage.getItem('navigator_admin_authenticated');
+    if (auth === 'true') {
+      setIsAuthenticated(true);
+    } else {
+      setIsAuthenticated(false);
+      router.replace(`/admin/login?returnUrl=${encodeURIComponent(pathname)}`);
+    }
+  }, [pathname, router]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('navigator_admin_authenticated');
+    localStorage.removeItem('navigator_admin_user');
+    document.cookie = 'navigator_admin_session=; path=/; max-age=0';
+    setIsAuthenticated(false);
+    router.replace('/admin/login');
+  };
+
+  // If on login page, render child component directly without admin shell
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  // Loading spinner while verifying credentials
+  if (isAuthenticated === null || isAuthenticated === false) {
+    return (
+      <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center text-stone-400 text-xs font-sans space-y-3">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+        <div className="font-medium text-stone-300">Checking admin session...</div>
+      </div>
+    );
+  }
 
   const navItems = [
     { label: 'Store Dashboard', href: '/admin', icon: Layers },
@@ -136,19 +180,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         ))}
       </nav>
 
-      {/* Bottom Store Switcher */}
-      <div className="p-4 border-t border-stone-800 bg-stone-900/50">
+      {/* Bottom Store Switcher & Logout */}
+      <div className="p-4 border-t border-stone-800 bg-stone-900/50 space-y-2">
         <Link
           href="/"
           target="_blank"
-          className="w-full px-3 py-2.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium flex items-center justify-between transition-colors border border-stone-700/60"
+          className="w-full px-3 py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium flex items-center justify-between transition-colors border border-stone-700/60"
         >
           <div className="flex items-center gap-2">
             <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-            <span>Customer Storefront</span>
+            <span>Storefront</span>
           </div>
           <ArrowUpRight className="w-3 h-3 text-stone-400" />
         </Link>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full px-3 py-2 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white text-xs font-semibold flex items-center justify-between transition-colors border border-rose-900/40 cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <LogOut className="w-3.5 h-3.5 text-rose-400" />
+            <span>Sign Out</span>
+          </div>
+          <span className="text-[10px] text-rose-400/80 font-mono">admin</span>
+        </button>
       </div>
     </div>
   );
@@ -213,6 +269,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span className="hidden sm:inline">New Coupon</span>
               <span className="sm:hidden">New</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="p-1.5 text-stone-400 hover:text-rose-400 rounded-lg hover:bg-stone-800 transition-colors hidden sm:inline-flex"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
