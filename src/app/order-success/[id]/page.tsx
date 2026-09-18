@@ -9,7 +9,7 @@ import Header from '@/components/storefront/Header';
 import Footer from '@/components/storefront/Footer';
 import { fetchApi } from '@/lib/api';
 import { Order } from '@/types';
-import { CheckCircle2, ShoppingBag, ArrowRight, ShieldCheck, Tag, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Tag } from 'lucide-react';
 
 export default function OrderSuccessPage() {
   const params = useParams();
@@ -161,14 +161,6 @@ export default function OrderSuccessPage() {
               className="px-6 py-3 rounded-full bg-[#1c1d1f] text-white text-xs font-bold uppercase tracking-wider hover:bg-stone-800 transition-colors shadow-md"
             >
               Continue Shopping
-            </Link>
-            <Link
-              href="/admin/coupons"
-              className="px-6 py-3 rounded-full bg-white text-stone-900 border border-stone-300 text-xs font-semibold hover:bg-stone-50 transition-colors inline-flex items-center gap-1.5"
-            >
-              <ShieldCheck className="w-4 h-4 text-[#ab8d6c]" />
-              <span>Inspect in Admin Portal</span>
-              <ExternalLink className="w-3.5 h-3.5 text-stone-400" />
             </Link>
           </div>
         </div>

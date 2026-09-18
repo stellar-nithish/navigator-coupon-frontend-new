@@ -25,6 +25,7 @@ export default function CheckoutPage() {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,17 +63,30 @@ export default function CheckoutPage() {
         body: JSON.stringify(payload),
       });
 
-      // Clear cart on successful transactional redemption
+      setIsSuccess(true);
       clearCart();
-      router.push(`/order-success/${order.orderNumber}`);
+      router.replace(`/order-success/${order.orderNumber}`);
     } catch (err: any) {
       setOrderError(err.message || 'Failed to place order. Please check coupon and item details.');
-    } finally {
       setSubmitting(false);
     }
   };
 
-  if (cart.length === 0) {
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#f9f8f6]">
+        <Header />
+        <div className="max-w-md mx-auto my-24 p-8 bg-white rounded-2xl border border-stone-200 text-center shadow-sm space-y-3">
+          <Loader2 className="w-8 h-8 text-[#ab8d6c] animate-spin mx-auto" />
+          <h2 className="font-serif text-lg font-bold text-stone-900">Confirming Your Order...</h2>
+          <p className="text-xs text-stone-500">Redirecting to order confirmation...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (cart.length === 0 && !submitting) {
     return (
       <div className="min-h-screen flex flex-col bg-[#f9f8f6]">
         <Header />
