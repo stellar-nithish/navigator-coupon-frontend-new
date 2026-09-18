@@ -69,11 +69,12 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
+      {/* Desktop / Tablet Table View */}
+      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden hidden sm:block shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[720px]">
             <thead>
-              <tr className="border-b border-stone-800 text-stone-400 bg-stone-900/80 font-semibold">
+              <tr className="border-b border-stone-800 text-stone-400 bg-stone-950/60 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="p-4">Order Number</th>
                 <th className="p-4">Customer</th>
                 <th className="p-4">Items</th>
@@ -89,7 +90,8 @@ export default function AdminOrdersPage() {
               {loading ? (
                 <tr>
                   <td colSpan={9} className="p-8 text-center text-stone-500">
-                    Loading orders...
+                    <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+                    <div>Loading orders...</div>
                   </td>
                 </tr>
               ) : orders.length === 0 ? (
@@ -111,7 +113,7 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="p-4">
                       {order.couponCode ? (
-                        <span className="inline-flex items-center gap-1 font-mono font-bold text-amber-400">
+                        <span className="inline-flex items-center gap-1 font-mono font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
                           <Tag className="w-3 h-3 text-amber-400" />
                           {order.couponCode}
                         </span>
@@ -140,7 +142,7 @@ export default function AdminOrdersPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedOrder(order)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-400 hover:text-stone-950 text-amber-400 border border-stone-700/80 transition-all font-semibold active:scale-95 cursor-pointer shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-400 hover:text-stone-950 text-amber-400 border border-stone-700/80 transition-all font-semibold active:scale-95 cursor-pointer shadow-xs"
                         title="View order product details"
                         aria-label="View order details"
                       >
@@ -154,6 +156,83 @@ export default function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Phone Card View */}
+      <div className="sm:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+            <div>Loading orders...</div>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            No orders placed yet.
+          </div>
+        ) : (
+          orders.map((order) => (
+            <div
+              key={order.id}
+              className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3 shadow-md"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-mono font-bold text-white text-xs">
+                    {order.orderNumber}
+                  </div>
+                  <div className="text-[11px] text-stone-400 mt-0.5">
+                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {order.status}
+                </span>
+              </div>
+
+              <div className="border-t border-stone-800/80 pt-2 space-y-1 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Customer:</span>
+                  <span className="text-white font-medium">{order.shippingName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Items:</span>
+                  <span className="text-stone-300">
+                    {order.items?.reduce((sum, item) => sum + item.quantity, 0) || order.items?.length || 0} pieces
+                  </span>
+                </div>
+                {order.couponCode && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-stone-400">Coupon:</span>
+                    <span className="inline-flex items-center gap-1 font-mono font-bold text-amber-400 text-[11px]">
+                      <Tag className="w-3 h-3" />
+                      {order.couponCode} (-₹{order.discountAmount})
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1 border-t border-stone-800/60">
+                  <span className="text-stone-400 font-semibold">Total Paid:</span>
+                  <span className="text-amber-400 font-bold text-sm">
+                    ₹{order.totalAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(order)}
+                className="w-full py-2 bg-stone-800 hover:bg-amber-400 hover:text-stone-950 text-amber-400 border border-stone-700 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                <span>View Product Details</span>
+              </button>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Order Product Details Modal Popup */}

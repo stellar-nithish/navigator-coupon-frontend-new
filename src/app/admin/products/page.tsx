@@ -149,10 +149,10 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Garments Table */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden shadow-xl">
+      {/* Desktop / Tablet Garments Table */}
+      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden shadow-xl hidden sm:block">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead>
               <tr className="border-b border-stone-800 text-stone-400 bg-stone-950/60 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="p-4">Garment</th>
@@ -302,6 +302,110 @@ export default function AdminProductsPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Phone Garment Cards */}
+      <div className="sm:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+            <div>Loading garments catalog...</div>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            No garments found.
+          </div>
+        ) : (
+          products.map((p) => {
+            const images = Array.isArray(p.images)
+              ? p.images
+              : typeof p.images === 'string'
+              ? JSON.parse(p.images || '[]')
+              : [];
+            const mainImg = images[0] || 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400';
+
+            return (
+              <div
+                key={p.id}
+                className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3 shadow-md"
+              >
+                <div className="flex gap-3 items-start">
+                  <div className="w-16 h-20 rounded-lg overflow-hidden bg-stone-950 border border-stone-800 shrink-0 relative">
+                    <img
+                      src={mainImg}
+                      alt={p.title}
+                      className="w-full h-full object-cover object-center"
+                    />
+                    {p.badge && (
+                      <div className="absolute top-1 left-1 bg-amber-400 text-[8px] font-black text-stone-950 px-1 rounded">
+                        {p.badge}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                      {p.category?.name || 'Garment'}
+                    </span>
+                    <h3 className="font-bold text-white text-xs leading-snug line-clamp-2 mt-0.5">
+                      {p.title}
+                    </h3>
+                    <div className="text-[11px] text-stone-400 mt-1 font-mono">
+                      SKU: {p.sku}
+                    </div>
+                    <div className="text-[11px] text-stone-400">
+                      Fabric: {p.fabric || '—'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-stone-800 pt-2 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-stone-400 text-[11px]">Stock: </span>
+                    <span
+                      className={`font-semibold ${
+                        p.stock <= 10 ? 'text-rose-400' : 'text-stone-200'
+                      }`}
+                    >
+                      {p.stock} units
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-amber-400 text-sm">
+                      ₹{p.price.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-stone-800 pt-2 flex items-center justify-between gap-2">
+                  <Link
+                    href={`/product/${p.slug}`}
+                    target="_blank"
+                    className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold flex items-center gap-1 transition-colors"
+                  >
+                    <span>Preview Store</span>
+                    <ExternalLink className="w-3 h-3 text-stone-400" />
+                  </Link>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/admin/products/${p.id}/edit`}
+                      className="p-2 bg-stone-800 hover:bg-amber-400 hover:text-stone-950 text-amber-400 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </Link>
+                    <button
+                      onClick={() => setDeletingId(p.id)}
+                      className="p-2 bg-stone-800 hover:bg-rose-500 text-stone-400 hover:text-white rounded-lg text-xs font-bold transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}

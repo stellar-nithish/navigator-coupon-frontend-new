@@ -180,7 +180,7 @@ export default function AllCouponsPage() {
       {/* Coupons Table */}
       <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead>
               <tr className="border-b border-stone-800 text-stone-400 bg-stone-900/80 font-semibold">
                 <th className="p-4">Coupon Code</th>
