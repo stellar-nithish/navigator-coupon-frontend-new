@@ -204,15 +204,6 @@ function LoginForm() {
               )}
             </button>
           </form>
-
-          {/* Credentials Info Badge */}
-          <div className="p-3 bg-stone-950/80 border border-stone-800/80 rounded-xl text-center text-[11px] text-stone-400">
-            <span>Username: </span>
-            <strong className="text-white font-mono">admin</strong>
-            <span className="mx-2 text-stone-600">|</span>
-            <span>Password: </span>
-            <strong className="text-white font-mono">Navigator@2026</strong>
-          </div>
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import {
   History,
   ShoppingBag,
   Package,
+  Boxes,
   Layers,
   ArrowUpRight,
   PlusCircle,
@@ -91,6 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       items: [
         { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
         { label: 'Products', href: '/admin/products', icon: Package },
+        { label: 'Inventory', href: '/admin/inventory', icon: Boxes },
       ],
     },
   ];
