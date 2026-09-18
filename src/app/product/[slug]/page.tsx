@@ -20,6 +20,8 @@ import {
   Check,
   Ruler,
   X,
+  AlertCircle,
+  XCircle,
 } from 'lucide-react';
 
 export default function ProductDetailPage() {
@@ -30,6 +32,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('M');
   const [addedNotice, setAddedNotice] = useState(false);
+  const [stockErrorMessage, setStockErrorMessage] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [fabricCareOpen, setFabricCareOpen] = useState(false);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
@@ -53,9 +56,15 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product, 1, selectedSize);
-    setAddedNotice(true);
-    setTimeout(() => setAddedNotice(false), 2500);
+    const result = addToCart(product, 1, selectedSize);
+    if (result && !result.success) {
+      setStockErrorMessage(result.message || `Insufficient stock for "${product.title}". Available: ${product.stock}`);
+      setAddedNotice(false);
+    } else {
+      setStockErrorMessage(null);
+      setAddedNotice(true);
+      setTimeout(() => setAddedNotice(false), 2500);
+    }
   };
 
   if (loading) {
@@ -198,7 +207,7 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* Size Selector */}
+            {/* Size Selector & Stock Availability */}
             <div className="space-y-2.5 pt-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-semibold text-stone-900">Select size</span>
@@ -217,9 +226,12 @@ export default function ProductDetailPage() {
                   <button
                     key={size}
                     type="button"
+                    disabled={product.stock === 0}
                     onClick={() => setSelectedSize(size)}
                     className={`py-3 text-xs font-semibold rounded-lg border transition-all ${
-                      selectedSize === size
+                      product.stock === 0
+                        ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed'
+                        : selectedSize === size
                         ? 'bg-[#1C2C24] text-white border-[#1C2C24] shadow-sm'
                         : 'bg-white text-stone-800 border-stone-300 hover:border-stone-400'
                     }`}
@@ -228,17 +240,69 @@ export default function ProductDetailPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Real-Time Stock Status Badges */}
+              {product.stock === 0 ? (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-semibold flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Out of stock · Currently unavailable for purchase</span>
+                </div>
+              ) : product.stock <= 10 ? (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 font-semibold flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span>
+                      Only <strong>{product.stock} items</strong> left in stock — order soon!
+                    </span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-amber-800 bg-amber-200/80 px-2 py-0.5 rounded">
+                    Low Stock
+                  </span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 pt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>In Stock ({product.stock} units available in warehouse)</span>
+                </div>
+              )}
             </div>
 
+            {/* Insufficient Stock Error Banner */}
+            {stockErrorMessage && (
+              <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-xl text-xs text-rose-900 flex items-start justify-between gap-2.5 shadow-sm animate-fadeIn">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-rose-900">Stock Limit Reached</div>
+                    <div className="text-rose-800 text-[11px] mt-0.5 leading-snug">
+                      {stockErrorMessage}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStockErrorMessage(null)}
+                  className="text-rose-400 hover:text-rose-700 p-0.5 rounded transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* Add to Bag Button */}
-            <div className="pt-2 space-y-3">
+            <div className="pt-1 space-y-3">
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="w-full py-4 rounded-xl bg-[#E07A2B] hover:bg-[#CA6B22] active:scale-[0.99] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all"
+                disabled={product.stock === 0}
+                className={`w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all shadow-md ${
+                  product.stock === 0
+                    ? 'bg-stone-400 cursor-not-allowed opacity-75'
+                    : 'bg-[#E07A2B] hover:bg-[#CA6B22] active:scale-[0.99] hover:shadow-lg cursor-pointer'
+                }`}
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>ADD TO BAG</span>
+                <span>{product.stock === 0 ? 'OUT OF STOCK' : 'ADD TO BAG'}</span>
               </button>
 
               <div className="text-center text-[11px] text-stone-500">

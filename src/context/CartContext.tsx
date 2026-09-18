@@ -6,9 +6,9 @@ import { fetchApi } from '../lib/api';
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, quantity?: number, size?: string) => void;
+  addToCart: (product: Product, quantity?: number, size?: string) => { success: boolean; message?: string };
   removeFromCart: (productId: string, size?: string) => void;
-  updateQuantity: (productId: string, quantity: number, size?: string) => void;
+  updateQuantity: (productId: string, quantity: number, size?: string) => { success: boolean; message?: string };
   clearCart: () => void;
   subtotal: number;
   totalItems: number;
@@ -167,8 +167,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [subtotal, cart.length]);
 
-  const addToCart = (product: Product, quantity = 1, size = 'M') => {
+  const addToCart = (product: Product, quantity = 1, size = 'M'): { success: boolean; message?: string } => {
     const normalizedSize = (size || 'M').trim().toUpperCase();
+
+    // Check total existing quantity of this product across all sizes in cart
+    const currentTotalQtyForProduct = cart
+      .filter((item) => {
+        const p = item.product;
+        return (
+          (p.id && product.id && p.id === product.id) ||
+          (p.slug && product.slug && p.slug === product.slug) ||
+          (p.sku && product.sku && p.sku === product.sku) ||
+          (p.title &&
+            product.title &&
+            p.title.trim().toLowerCase() === product.title.trim().toLowerCase())
+        );
+      })
+      .reduce((sum, item) => sum + item.quantity, 0);
+
+    const availableStock = typeof product.stock === 'number' ? product.stock : 9999;
+    if (availableStock <= 0) {
+      return {
+        success: false,
+        message: `"${product.title}" is currently out of stock.`,
+      };
+    }
+
+    if (currentTotalQtyForProduct + quantity > availableStock) {
+      return {
+        success: false,
+        message: `Insufficient stock for "${product.title}". Available: ${availableStock}`,
+      };
+    }
+
     setCart((prev) => {
       const existingIndex = prev.findIndex((item) =>
         isSameItem(item, product, normalizedSize),
@@ -194,6 +225,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ];
     });
     setIsCartOpen(true);
+    return { success: true };
   };
 
   const removeFromCart = (productId: string, size = 'M') => {
@@ -210,12 +242,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const updateQuantity = (productId: string, quantity: number, size = 'M') => {
+  const updateQuantity = (productId: string, quantity: number, size = 'M'): { success: boolean; message?: string } => {
     const normalizedSize = (size || 'M').trim().toUpperCase();
     if (quantity <= 0) {
       removeFromCart(productId, normalizedSize);
-      return;
+      return { success: true };
     }
+
+    // Check available stock
+    const currentItem = cart.find((item) =>
+      isSameItem(item, { id: productId, slug: productId, sku: productId }, normalizedSize),
+    );
+
+    if (currentItem && typeof currentItem.product.stock === 'number') {
+      const otherSizesQty = cart
+        .filter(
+          (item) =>
+            !isSameItem(item, { id: productId, slug: productId, sku: productId }, normalizedSize) &&
+            ((item.product.id && currentItem.product.id && item.product.id === currentItem.product.id) ||
+              (item.product.slug && currentItem.product.slug && item.product.slug === currentItem.product.slug) ||
+              (item.product.sku && currentItem.product.sku && item.product.sku === currentItem.product.sku)),
+        )
+        .reduce((sum, item) => sum + item.quantity, 0);
+
+      if (otherSizesQty + quantity > currentItem.product.stock) {
+        return {
+          success: false,
+          message: `Insufficient stock for "${currentItem.product.title}". Available: ${currentItem.product.stock}`,
+        };
+      }
+    }
+
     setCart((prev) =>
       prev.map((item) =>
         isSameItem(
@@ -227,6 +284,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           : item,
       ),
     );
+    return { success: true };
   };
 
   const clearCart = () => {

@@ -7,7 +7,6 @@ import { Product, Category } from '@/types';
 import {
   Boxes,
   Search,
-  Filter,
   CheckCircle2,
   AlertTriangle,
   XCircle,
@@ -17,14 +16,82 @@ import {
   TrendingUp,
   PackageCheck,
   ShieldAlert,
-  SlidersHorizontal,
-  ExternalLink,
-  Edit2,
   X,
   Truck,
-  ArrowRight,
-  Layers,
 } from 'lucide-react';
+
+// Dedicated Stepper & Direct-Type Input for Stock Adjustments
+function StockStepperInput({
+  product,
+  isUpdating,
+  onUpdateStock,
+}: {
+  product: Product;
+  isUpdating: boolean;
+  onUpdateStock: (product: Product, newStock: number) => Promise<void>;
+}) {
+  const [val, setVal] = useState<string>(String(product.stock));
+
+  // Sync if external stock state updates
+  useEffect(() => {
+    setVal(String(product.stock));
+  }, [product.stock]);
+
+  const commitValue = () => {
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num >= 0 && num !== product.stock) {
+      onUpdateStock(product, num);
+    } else {
+      setVal(String(product.stock));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitValue();
+      (e.target as HTMLInputElement).blur();
+    } else if (e.key === 'Escape') {
+      setVal(String(product.stock));
+      (e.target as HTMLInputElement).blur();
+    }
+  };
+
+  return (
+    <div className="inline-flex items-center gap-1 bg-stone-950 p-1 rounded-xl border border-stone-800 shadow-inner">
+      <button
+        type="button"
+        onClick={() => onUpdateStock(product, Math.max(0, product.stock - 1))}
+        disabled={isUpdating || product.stock <= 0}
+        className="w-7 h-7 rounded-lg bg-stone-900 hover:bg-stone-800 hover:text-white text-stone-400 flex items-center justify-center disabled:opacity-30 transition-colors cursor-pointer"
+        title="Decrease 1 unit"
+      >
+        <Minus className="w-3.5 h-3.5" />
+      </button>
+
+      <input
+        type="number"
+        min="0"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={commitValue}
+        onKeyDown={handleKeyDown}
+        disabled={isUpdating}
+        className="w-14 text-center font-mono font-bold text-xs bg-stone-900 text-amber-400 border border-stone-800 rounded-lg py-1 px-1 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        title="Type quantity directly and press Enter"
+      />
+
+      <button
+        type="button"
+        onClick={() => onUpdateStock(product, product.stock + 1)}
+        disabled={isUpdating}
+        className="w-7 h-7 rounded-lg bg-stone-900 hover:bg-stone-800 hover:text-white text-stone-400 flex items-center justify-center disabled:opacity-30 transition-colors cursor-pointer"
+        title="Increase 1 unit"
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -71,23 +138,23 @@ export default function AdminInventoryPage() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Quick Inline Stock Update (+/-)
-  const handleQuickStockChange = async (product: Product, delta: number) => {
-    const newStock = Math.max(0, product.stock + delta);
-    if (newStock === product.stock) return;
+  // Direct Stock Update
+  const handleUpdateStock = async (product: Product, newStock: number) => {
+    const validStock = Math.max(0, Math.floor(newStock));
+    if (validStock === product.stock) return;
 
     setUpdatingId(product.id);
     try {
       await fetchApi(`/api/admin/products/${product.id}/stock`, {
         method: 'PATCH',
-        body: JSON.stringify({ stock: newStock }),
+        body: JSON.stringify({ stock: validStock }),
       });
 
       // Optimistic UI update
       setProducts((prev) =>
-        prev.map((p) => (p.id === product.id ? { ...p, stock: newStock } : p)),
+        prev.map((p) => (p.id === product.id ? { ...p, stock: validStock } : p)),
       );
-      showToast(`Updated "${product.title}" stock to ${newStock} units`);
+      showToast(`Updated "${product.title}" stock to ${validStock} units`);
     } catch (err: any) {
       showToast(err.message || 'Failed to update stock', 'error');
     } finally {
@@ -216,45 +283,49 @@ export default function AdminInventoryPage() {
         </div>
       </div>
 
-      {/* 5-Card High-Visibility KPI Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* 5-Card High-Visibility KPI Grid with Proper Padding & Spacing */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Units */}
-        <div className="bg-stone-900 border border-stone-800 rounded-2xl p-4.5 space-y-1.5 shadow-md">
+        <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 sm:p-6 space-y-2.5 shadow-md flex flex-col justify-between">
           <div className="flex items-center justify-between text-stone-400 text-xs">
-            <span>Total Units in Stock</span>
-            <Boxes className="w-4 h-4 text-amber-400" />
+            <span className="font-medium text-stone-300">Total Units in Stock</span>
+            <Boxes className="w-4 h-4 text-amber-400 shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-white font-mono">
-            {loading ? '...' : totalUnits.toLocaleString('en-IN')}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold text-white font-mono tracking-tight">
+              {loading ? '...' : totalUnits.toLocaleString('en-IN')}
+            </div>
+            <p className="text-xs text-stone-500 mt-1">Across {products.length} garments</p>
           </div>
-          <p className="text-[11px] text-stone-500">Across {products.length} garments</p>
         </div>
 
         {/* Healthy Stock */}
         <div
           onClick={() => setFilterMode(filterMode === 'healthy' ? 'all' : 'healthy')}
-          className={`border rounded-2xl p-4.5 space-y-1.5 cursor-pointer transition-all shadow-md ${
+          className={`border rounded-2xl p-5 sm:p-6 space-y-2.5 cursor-pointer transition-all shadow-md flex flex-col justify-between ${
             filterMode === 'healthy'
               ? 'bg-emerald-950/40 border-emerald-500/70 ring-1 ring-emerald-500'
               : 'bg-stone-900 border-stone-800 hover:border-emerald-800/60'
           }`}
         >
-          <div className="flex items-center justify-between text-emerald-400 text-xs font-medium">
+          <div className="flex items-center justify-between text-emerald-400 text-xs font-semibold">
             <span>Healthy Stock (&gt;15)</span>
-            <PackageCheck className="w-4 h-4" />
+            <PackageCheck className="w-4 h-4 shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-emerald-400 font-mono">
-            {loading ? '...' : healthyCount}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-400 font-mono tracking-tight">
+              {loading ? '...' : healthyCount}
+            </div>
+            <p className="text-xs text-stone-400 mt-1">
+              {products.length > 0 ? Math.round((healthyCount / products.length) * 100) : 0}% of catalog
+            </p>
           </div>
-          <p className="text-[11px] text-stone-500">
-            {products.length > 0 ? Math.round((healthyCount / products.length) * 100) : 0}% of catalog
-          </p>
         </div>
 
         {/* Low Stock Alerts */}
         <div
           onClick={() => setFilterMode(filterMode === 'low' ? 'all' : 'low')}
-          className={`border rounded-2xl p-4.5 space-y-1.5 cursor-pointer transition-all shadow-md ${
+          className={`border rounded-2xl p-5 sm:p-6 space-y-2.5 cursor-pointer transition-all shadow-md flex flex-col justify-between ${
             filterMode === 'low'
               ? 'bg-amber-950/40 border-amber-500/70 ring-1 ring-amber-500'
               : lowCount > 0
@@ -262,20 +333,22 @@ export default function AdminInventoryPage() {
               : 'bg-stone-900 border-stone-800'
           }`}
         >
-          <div className="flex items-center justify-between text-amber-400 text-xs font-medium">
+          <div className="flex items-center justify-between text-amber-400 text-xs font-semibold">
             <span>Low Stock (1-15)</span>
-            <ShieldAlert className="w-4 h-4" />
+            <ShieldAlert className="w-4 h-4 shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-amber-400 font-mono">
-            {loading ? '...' : lowCount}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-400 font-mono tracking-tight">
+              {loading ? '...' : lowCount}
+            </div>
+            <p className="text-xs text-amber-400/90 mt-1 font-medium">Needs reorder soon</p>
           </div>
-          <p className="text-[11px] text-amber-400/80 font-medium">Needs reorder soon</p>
         </div>
 
         {/* Out of Stock */}
         <div
           onClick={() => setFilterMode(filterMode === 'out' ? 'all' : 'out')}
-          className={`border rounded-2xl p-4.5 space-y-1.5 cursor-pointer transition-all shadow-md ${
+          className={`border rounded-2xl p-5 sm:p-6 space-y-2.5 cursor-pointer transition-all shadow-md flex flex-col justify-between ${
             filterMode === 'out'
               ? 'bg-rose-950/40 border-rose-500/70 ring-1 ring-rose-500'
               : outCount > 0
@@ -283,26 +356,30 @@ export default function AdminInventoryPage() {
               : 'bg-stone-900 border-stone-800'
           }`}
         >
-          <div className="flex items-center justify-between text-rose-400 text-xs font-medium">
+          <div className="flex items-center justify-between text-rose-400 text-xs font-semibold">
             <span>Out of Stock (0)</span>
-            <XCircle className="w-4 h-4" />
+            <XCircle className="w-4 h-4 shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-rose-400 font-mono">
-            {loading ? '...' : outCount}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold text-rose-400 font-mono tracking-tight">
+              {loading ? '...' : outCount}
+            </div>
+            <p className="text-xs text-stone-400 mt-1">Unavailable for checkout</p>
           </div>
-          <p className="text-[11px] text-stone-500">Unavailable for checkout</p>
         </div>
 
         {/* Inventory Retail Valuation */}
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-stone-900 border border-stone-800 rounded-2xl p-4.5 space-y-1.5 shadow-md">
-          <div className="flex items-center justify-between text-stone-400 text-xs">
-            <span>Inventory Valuation</span>
-            <TrendingUp className="w-4 h-4 text-amber-400" />
+        <div className="col-span-1 sm:col-span-2 lg:col-span-1 bg-stone-900 border border-stone-800 rounded-2xl p-5 sm:p-6 space-y-2.5 shadow-md flex flex-col justify-between">
+          <div className="flex items-center justify-between text-stone-400 text-xs font-medium">
+            <span className="text-stone-300">Inventory Valuation</span>
+            <TrendingUp className="w-4 h-4 text-amber-400 shrink-0" />
           </div>
-          <div className="text-2xl font-bold text-amber-400 font-mono truncate">
-            ₹{loading ? '...' : totalValuation.toLocaleString('en-IN')}
+          <div>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-400 font-mono tracking-tight truncate">
+              ₹{loading ? '...' : totalValuation.toLocaleString('en-IN')}
+            </div>
+            <p className="text-xs text-stone-500 mt-1">Retail asset value</p>
           </div>
-          <p className="text-[11px] text-stone-500">Retail asset value</p>
         </div>
       </div>
 
@@ -414,7 +491,6 @@ export default function AdminInventoryPage() {
 
                   const isLow = product.stock > 0 && product.stock <= 15;
                   const isOut = product.stock === 0;
-                  const isHealthy = product.stock > 15;
                   const healthPercent = Math.min(100, Math.round((product.stock / 100) * 100));
 
                   return (
@@ -525,37 +601,13 @@ export default function AdminInventoryPage() {
                         ₹{(product.price * product.stock).toLocaleString('en-IN')}
                       </td>
 
-                      {/* Quick Adjust +/- Buttons */}
+                      {/* Quick Adjust: Minus, Direct Manual Input, Plus */}
                       <td className="p-4 text-center">
-                        <div className="inline-flex items-center gap-1 bg-stone-950 p-1 rounded-xl border border-stone-800">
-                          <button
-                            type="button"
-                            onClick={() => handleQuickStockChange(product, -1)}
-                            disabled={updatingId === product.id || product.stock <= 0}
-                            className="p-1 rounded-lg hover:bg-stone-800 text-stone-400 hover:text-white disabled:opacity-30 transition-colors"
-                            title="Decrease 1 unit"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickStockChange(product, 5)}
-                            disabled={updatingId === product.id}
-                            className="px-2 py-0.5 rounded-lg hover:bg-stone-800 text-amber-400 font-bold text-[10px] transition-colors"
-                            title="Quick add +5 units"
-                          >
-                            +5
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleQuickStockChange(product, 10)}
-                            disabled={updatingId === product.id}
-                            className="px-2 py-0.5 rounded-lg hover:bg-stone-800 text-emerald-400 font-bold text-[10px] transition-colors"
-                            title="Quick add +10 units"
-                          >
-                            +10
-                          </button>
-                        </div>
+                        <StockStepperInput
+                          product={product}
+                          isUpdating={updatingId === product.id}
+                          onUpdateStock={handleUpdateStock}
+                        />
                       </td>
 
                       {/* Action / Restock Button */}
@@ -567,7 +619,7 @@ export default function AdminInventoryPage() {
                             setRestockUnits(25);
                             setRestockMode('add');
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-400 hover:text-stone-950 text-amber-400 border border-stone-700/80 font-bold text-xs transition-all shadow-xs active:scale-95 inline-flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-amber-400 hover:text-stone-950 text-amber-400 border border-stone-700/80 font-bold text-xs transition-all shadow-xs active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <Truck className="w-3.5 h-3.5" />
                           <span>Restock</span>
@@ -611,7 +663,7 @@ export default function AdminInventoryPage() {
             return (
               <div
                 key={product.id}
-                className="bg-stone-900 border border-stone-800 rounded-2xl p-4 space-y-3 shadow-md"
+                className="bg-stone-900 border border-stone-800 rounded-2xl p-4.5 space-y-3 shadow-md"
               >
                 <div className="flex gap-3 items-start">
                   <img
@@ -658,34 +710,13 @@ export default function AdminInventoryPage() {
                   </div>
                 </div>
 
-                {/* Quick actions bar */}
-                <div className="border-t border-stone-800 pt-2 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 bg-stone-950 p-1 rounded-xl border border-stone-800">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStockChange(product, -1)}
-                      disabled={updatingId === product.id || product.stock <= 0}
-                      className="p-1.5 rounded-lg hover:bg-stone-800 text-stone-400 hover:text-white disabled:opacity-30"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStockChange(product, 5)}
-                      disabled={updatingId === product.id}
-                      className="px-2 py-1 rounded-lg hover:bg-stone-800 text-amber-400 font-bold text-xs"
-                    >
-                      +5
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStockChange(product, 10)}
-                      disabled={updatingId === product.id}
-                      className="px-2 py-1 rounded-lg hover:bg-stone-800 text-emerald-400 font-bold text-xs"
-                    >
-                      +10
-                    </button>
-                  </div>
+                {/* Quick actions bar with Stepper & Direct Type Input */}
+                <div className="border-t border-stone-800 pt-2.5 flex items-center justify-between gap-2">
+                  <StockStepperInput
+                    product={product}
+                    isUpdating={updatingId === product.id}
+                    onUpdateStock={handleUpdateStock}
+                  />
 
                   <button
                     type="button"
@@ -694,7 +725,7 @@ export default function AdminInventoryPage() {
                       setRestockUnits(25);
                       setRestockMode('add');
                     }}
-                    className="flex-1 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                   >
                     <Truck className="w-3.5 h-3.5" />
                     <span>Restock</span>

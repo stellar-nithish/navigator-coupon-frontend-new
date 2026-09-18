@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import CouponBox from './CouponBox';
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from 'lucide-react';
+import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function CartDrawer() {
   const {
@@ -18,6 +18,18 @@ export default function CartDrawer() {
     finalTotal,
     appliedCoupon,
   } = useCart();
+
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
+
+  const handleQtyChange = (productId: string, newQty: number, size = 'M') => {
+    const res = updateQuantity(productId, newQty, size);
+    if (res && !res.success) {
+      setStockWarning(res.message || 'Cannot add more units than available stock.');
+      setTimeout(() => setStockWarning(null), 3500);
+    } else {
+      setStockWarning(null);
+    }
+  };
 
   if (!isCartOpen) return null;
 
@@ -42,12 +54,29 @@ export default function CartDrawer() {
             </div>
             <button
               onClick={() => setIsCartOpen(false)}
-              className="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition-colors"
+              className="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
               aria-label="Close cart"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Stock Warning Notice in Drawer */}
+          {stockWarning && (
+            <div className="bg-rose-50 border-b border-rose-200 px-4 py-2.5 text-xs text-rose-900 flex items-center justify-between gap-2 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span className="font-medium text-[11px]">{stockWarning}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStockWarning(null)}
+                className="text-rose-400 hover:text-rose-700 p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -111,18 +140,18 @@ export default function CartDrawer() {
                           <div className="flex items-center justify-between mt-3">
                             <div className="flex items-center border border-stone-300 rounded-lg bg-white">
                               <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.size)}
-                                className="p-1 text-stone-600 hover:text-stone-900"
+                                onClick={() => handleQtyChange(item.product.id, item.quantity - 1, item.size)}
+                                className="p-1 text-stone-600 hover:text-stone-900 cursor-pointer"
                                 aria-label="Decrease quantity"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <span className="px-2 text-xs font-medium text-stone-800">
+                              <span className="px-2 text-xs font-medium text-stone-800 font-mono">
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.size)}
-                                className="p-1 text-stone-600 hover:text-stone-900"
+                                onClick={() => handleQtyChange(item.product.id, item.quantity + 1, item.size)}
+                                className="p-1 text-stone-600 hover:text-stone-900 cursor-pointer"
                                 aria-label="Increase quantity"
                               >
                                 <Plus className="w-3 h-3" />
