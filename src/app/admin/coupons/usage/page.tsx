@@ -103,12 +103,12 @@ export default function RedemptionsLogPage() {
         </div>
       </div>
 
-      {/* Usages Table */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
+      {/* Desktop / Tablet Usages Table */}
+      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden hidden sm:block shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[720px]">
             <thead>
-              <tr className="border-b border-stone-800 text-stone-400 bg-stone-900/80 font-semibold">
+              <tr className="border-b border-stone-800 text-stone-400 bg-stone-950/60 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="p-4">Order Number</th>
                 <th className="p-4">Customer Email</th>
                 <th className="p-4">Coupon Code</th>
@@ -123,7 +123,8 @@ export default function RedemptionsLogPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-stone-500">
-                    Loading redemption audit logs...
+                    <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+                    <div>Loading redemption audit logs...</div>
                   </td>
                 </tr>
               ) : usages.length === 0 ? (
@@ -191,6 +192,99 @@ export default function RedemptionsLogPage() {
                 className="px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-white"
               >
                 Previous
+              </button>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-white"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Phone Redemptions Cards */}
+      <div className="sm:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+            <div>Loading redemption audit logs...</div>
+          </div>
+        ) : usages.length === 0 ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            No redemption records found.
+          </div>
+        ) : (
+          usages.map((usage) => (
+            <div
+              key={usage.id}
+              className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3 shadow-md"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="font-mono font-bold text-white text-xs">
+                    {usage.order?.orderNumber || usage.orderId}
+                  </div>
+                  <div className="text-[11px] text-stone-400 mt-0.5">
+                    {new Date(usage.redeemedAt).toLocaleDateString()} {new Date(usage.redeemedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Redeemed
+                </span>
+              </div>
+
+              <div className="border-t border-stone-800/80 pt-2 space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Customer:</span>
+                  <span className="text-stone-300 truncate max-w-[180px]">
+                    {usage.customerEmail || 'Guest'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-stone-400">Coupon:</span>
+                  <span className="font-mono font-bold text-amber-400">
+                    {usage.coupon?.code}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Partner:</span>
+                  <span className="text-stone-300">{usage.company?.name || '—'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Order Subtotal:</span>
+                  <span className="text-stone-200 font-medium">
+                    ₹{usage.orderAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-stone-800/60">
+                  <span className="text-stone-400 font-semibold">Discount Given:</span>
+                  <span className="text-emerald-400 font-bold">
+                    -₹{usage.discountAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 bg-stone-900 border border-stone-800 rounded-xl flex items-center justify-between text-xs text-stone-400">
+            <span>
+              Page {page} / {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-white"
+              >
+                Prev
               </button>
               <button
                 disabled={page >= totalPages}

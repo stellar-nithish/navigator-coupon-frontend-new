@@ -177,12 +177,12 @@ export default function AllCouponsPage() {
         </select>
       </div>
 
-      {/* Coupons Table */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
+      {/* Desktop / Tablet Coupons Table */}
+      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden hidden sm:block shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[760px]">
             <thead>
-              <tr className="border-b border-stone-800 text-stone-400 bg-stone-900/80 font-semibold">
+              <tr className="border-b border-stone-800 text-stone-400 bg-stone-950/60 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="p-4">Coupon Code</th>
                 <th className="p-4">Partner Company</th>
                 <th className="p-4">Discount Value</th>
@@ -197,7 +197,8 @@ export default function AllCouponsPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-stone-500">
-                    Loading coupon registry...
+                    <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+                    <div>Loading coupon registry...</div>
                   </td>
                 </tr>
               ) : coupons.length === 0 ? (
@@ -333,6 +334,150 @@ export default function AllCouponsPage() {
                 className="px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-white"
               >
                 Previous
+              </button>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-white"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Phone Coupon Cards */}
+      <div className="sm:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+            <div>Loading coupons...</div>
+          </div>
+        ) : coupons.length === 0 ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            No coupons found matching filters.
+          </div>
+        ) : (
+          coupons.map((coupon) => {
+            const isExpired = new Date(coupon.expiresAt) < new Date();
+            const isLimitReached = coupon.usageLimit && coupon.usageCount >= coupon.usageLimit;
+
+            return (
+              <div
+                key={coupon.id}
+                className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3 shadow-md"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <Link
+                      href={`/admin/coupons/${coupon.id}`}
+                      className="font-mono font-bold text-amber-400 text-sm hover:underline"
+                    >
+                      {coupon.code}
+                    </Link>
+                    <div className="text-xs text-white font-medium mt-0.5">
+                      {coupon.company?.name || 'Unknown Company'}
+                    </div>
+                  </div>
+
+                  {coupon.status === 'INACTIVE' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-700">
+                      Inactive
+                    </span>
+                  ) : isExpired ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-950/60 text-rose-400 border border-rose-800/40">
+                      Expired
+                    </span>
+                  ) : isLimitReached ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/60 text-amber-400 border border-amber-800/40">
+                      Limit Met
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                <div className="border-t border-stone-800/80 pt-2 space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Discount:</span>
+                    <span className="font-bold text-emerald-400">
+                      {coupon.type === 'PERCENTAGE'
+                        ? `${coupon.value}% OFF`
+                        : `₹${coupon.value} OFF`}
+                      {coupon.maximumDiscount && ` (Max ₹${coupon.maximumDiscount})`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Min Order:</span>
+                    <span className="text-stone-300">
+                      {coupon.minimumOrderAmount
+                        ? `₹${coupon.minimumOrderAmount.toLocaleString('en-IN')}`
+                        : 'None'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Redemptions:</span>
+                    <span className="text-stone-200 font-medium">
+                      {coupon.usageCount} {coupon.usageLimit ? `/ ${coupon.usageLimit}` : '(Unlimited)'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-stone-800/80 pt-2 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => handleToggleStatus(coupon.id)}
+                    className="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold flex items-center gap-1"
+                  >
+                    <CheckCircle2
+                      className={`w-3.5 h-3.5 ${
+                        coupon.status === 'ACTIVE' ? 'text-emerald-400' : 'text-stone-500'
+                      }`}
+                    />
+                    <span>{coupon.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</span>
+                  </button>
+                  <Link
+                    href={`/admin/coupons/${coupon.id}`}
+                    className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300"
+                    title="View"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href={`/admin/coupons/${coupon.id}/edit`}
+                    className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-400"
+                    title="Edit"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(coupon.id, coupon.code)}
+                    className="p-2 rounded-lg bg-stone-800 hover:bg-rose-950/60 text-rose-400"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 bg-stone-900 border border-stone-800 rounded-xl flex items-center justify-between text-xs text-stone-400">
+            <span>
+              Page {page} / {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-white"
+              >
+                Prev
               </button>
               <button
                 disabled={page >= totalPages}

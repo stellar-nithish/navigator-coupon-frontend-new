@@ -162,12 +162,12 @@ export default function CompaniesPage() {
         </select>
       </div>
 
-      {/* Companies Table */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden">
+      {/* Desktop / Tablet Companies Table */}
+      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden hidden sm:block shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[720px]">
             <thead>
-              <tr className="border-b border-stone-800 text-stone-400 bg-stone-900/80 font-semibold">
+              <tr className="border-b border-stone-800 text-stone-400 bg-stone-950/60 font-semibold uppercase tracking-wider text-[11px]">
                 <th className="p-4">Company Name</th>
                 <th className="p-4">Corporate Code</th>
                 <th className="p-4">Contact Person</th>
@@ -182,7 +182,8 @@ export default function CompaniesPage() {
               {loading ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-stone-500">
-                    Loading corporate registry...
+                    <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+                    <div>Loading corporate registry...</div>
                   </td>
                 </tr>
               ) : companies.length === 0 ? (
@@ -264,6 +265,104 @@ export default function CompaniesPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Phone Company Cards */}
+      <div className="sm:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            <div className="inline-block w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-2" />
+            <div>Loading companies...</div>
+          </div>
+        ) : companies.length === 0 ? (
+          <div className="p-8 text-center bg-stone-900 border border-stone-800 rounded-2xl text-stone-500 text-xs">
+            No companies found.
+          </div>
+        ) : (
+          companies.map((comp) => (
+            <div
+              key={comp.id}
+              className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3 shadow-md"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <Link
+                    href={`/admin/companies/${comp.id}`}
+                    className="font-bold text-white text-sm hover:text-amber-400"
+                  >
+                    {comp.name}
+                  </Link>
+                  <div className="font-mono font-bold text-amber-400 text-xs mt-0.5">
+                    {comp.code}
+                  </div>
+                </div>
+
+                {comp.status === 'ACTIVE' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                    Active
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-700">
+                    Inactive
+                  </span>
+                )}
+              </div>
+
+              <div className="border-t border-stone-800/80 pt-2 space-y-1.5 text-xs">
+                {comp.contactPerson && (
+                  <div className="flex justify-between">
+                    <span className="text-stone-400">Contact:</span>
+                    <span className="text-stone-300">{comp.contactPerson}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Coupons:</span>
+                  <span className="text-stone-200">
+                    {comp.totalCoupons || 0} ({comp.activeCoupons || 0} active)
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Redemptions:</span>
+                  <span className="text-stone-200 font-medium">{comp.totalRedemptions || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-400">Savings:</span>
+                  <span className="font-bold text-amber-400">
+                    ₹{(comp.totalDiscountGiven || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t border-stone-800/80 pt-2 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => handleToggleStatus(comp.id)}
+                  className="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold flex items-center gap-1"
+                >
+                  <CheckCircle2
+                    className={`w-3.5 h-3.5 ${
+                      comp.status === 'ACTIVE' ? 'text-emerald-400' : 'text-stone-500'
+                    }`}
+                  />
+                  <span>{comp.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}</span>
+                </button>
+                <Link
+                  href={`/admin/companies/${comp.id}`}
+                  className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300"
+                  title="View Profile"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </Link>
+                <button
+                  onClick={() => handleDelete(comp.id, comp.name)}
+                  className="p-2 rounded-lg bg-stone-800 hover:bg-rose-950/60 text-rose-400"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Modal: Create Company */}
